@@ -1,49 +1,37 @@
-FROM node:22.22.2-alpine AS base
-WORKDIR /usr/src/wpp-server
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+FROM node:20-bullseye-slim
 
-# Install build dependencies and runtime libraries for sharp
-RUN apk update && \
-    apk add --no-cache \
-    vips \
-    vips-dev \
-    fftw-dev \
-    gcc \
-    g++ \
-    make \
-    libc6-compat \
-    pkgconfig \
-    python3 \
-    && rm -rf /var/cache/apk/*
-
-# To make sure yarn 4 uses node-modules linker
-COPY .yarnrc.yml ./
-
-# Copy only package.json to leverage Docker cache
-COPY package.json ./
-COPY yarn.lock ./
-
-# Enable corepack and prepare yarn 4.14.1
-RUN corepack enable && \
-    corepack prepare yarn@4.14.1 --activate
-
-# Install dependencies with immutable lockfile
-RUN yarn install --immutable
-
-FROM base AS build
-WORKDIR /usr/src/wpp-server
-COPY . .
-RUN yarn install
-RUN yarn build
-
-FROM build AS runtime
-WORKDIR /usr/src/wpp-server/
-
-# Install runtime dependencies (chromium and vips libraries)
-RUN apk add --no-cache \
+# Instalar Chromium del sistema (compatible con el kernel de Railway)
+RUN apt-get update && apt-get install -y \
     chromium \
-    vips \
-    fftw
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libgdk-pixbuf2.0-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Decirle a Puppeteer que NO descargue Chrome y que use el del sistema
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+WORKDIR /usr/src/wpp-server
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
 
 EXPOSE 21465
-ENTRYPOINT ["node", "dist/server.js"]
+
+CMD ["node", "src/server.js"]
