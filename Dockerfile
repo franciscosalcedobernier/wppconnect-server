@@ -1,6 +1,5 @@
 FROM node:20-bullseye-slim
 
-# Instalar Chromium del sistema (compatible con el kernel de Railway)
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -21,14 +20,13 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Decirle a Puppeteer que NO descargue Chrome y que use el del sistema
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /usr/src/wpp-server
 
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
